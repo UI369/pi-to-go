@@ -68,6 +68,19 @@ app.post('/api/led/off', (req, res) => {
   res.json({ success: true, command: 'LED OFF' });
 });
 
+// Generic command endpoint for React app
+app.post('/send-command', (req, res) => {
+  const { command, piId } = req.body;
+  console.log(`Command received: ${command} for Pi: ${piId}`);
+  
+  if (command === 'on' || command === 'off') {
+    io.emit('led_command', { command });
+    res.json({ success: true, command: `LED ${command.toUpperCase()}` });
+  } else {
+    res.status(400).json({ error: 'Invalid command' });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
