@@ -90,7 +90,7 @@ function App() {
   // Take a photo when the component first loads
   useEffect(() => {
     takePhoto();
-  }, []);
+  }, [takePhoto]);
 
   return (
     <div className="App">
