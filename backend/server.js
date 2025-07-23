@@ -19,6 +19,8 @@ app.use(express.json());
 const connectedPis = new Map();
 // Store latest photo
 let latestPhoto = null;
+// Store current LED state
+let currentLedState = 'unknown'; // unknown, on, off
 
 // WebSocket connections
 io.on('connection', (socket) => {
@@ -37,6 +39,8 @@ io.on('connection', (socket) => {
   // Handle status updates from Pi
   socket.on('led_status', (status) => {
     console.log('LED status update:', status);
+    // Update server's knowledge of LED state
+    currentLedState = status.status;
     // Broadcast to all web clients
     socket.broadcast.emit('led_status', status);
   });
@@ -94,6 +98,8 @@ app.post('/send-command', (req, res) => {
   
   if (command === 'on' || command === 'off') {
     io.emit('led_command', { command });
+    // Update server's knowledge of LED state immediately
+    currentLedState = command;
     res.json({ success: true, command: `LED ${command.toUpperCase()}` });
   } else {
     res.status(400).json({ error: 'Invalid command' });
@@ -120,6 +126,15 @@ app.get('/latest-photo', (req, res) => {
   } else {
     res.status(404).json({ error: 'No photo available' });
   }
+});
+
+// Get current LED state
+app.get('/led-status', (req, res) => {
+  res.json({
+    success: true,
+    status: currentLedState,
+    timestamp: new Date().toISOString()
+  });
 });
 
 const PORT = process.env.PORT || 3000;
