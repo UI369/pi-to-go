@@ -30,8 +30,10 @@ function App() {
       if (response.ok) {
         setLedStatus(command);
         setConnected(true);
-        // Automatically take a photo after LED command
-        takePhoto();
+        // Wait a moment for LED to actually change, then take photo
+        setTimeout(() => {
+          takePhoto();
+        }, 100);
       } else {
         console.error('Failed to send command');
         setConnected(false);
