@@ -9,7 +9,9 @@ function App() {
   const [photoLoading, setPhotoLoading] = useState(false);
 
   // Replace with your Railway server URL
-  const SERVER_URL = process.env.REACT_APP_SERVER_URL || 'https://your-railway-url.up.railway.app';
+  const SERVER_URL =
+    process.env.REACT_APP_SERVER_URL ||
+    'https://your-railway-url.up.railway.app';
 
   const sendCommand = async (command) => {
     setLoading(true);
@@ -21,13 +23,15 @@ function App() {
         },
         body: JSON.stringify({
           command: command,
-          piId: 'pi-001'
+          piId: 'pi-001',
         }),
       });
 
       if (response.ok) {
         setLedStatus(command);
         setConnected(true);
+        // Automatically take a photo after LED command
+        takePhoto();
       } else {
         console.error('Failed to send command');
         setConnected(false);
@@ -50,7 +54,7 @@ function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          piId: 'pi-001'
+          piId: 'pi-001',
         }),
       });
 
@@ -85,9 +89,13 @@ function App() {
     <div className="App">
       <div className="container">
         <h1>🔌 Pi Control Dashboard</h1>
-        
+
         <div className="status-section">
-          <div className={`status-indicator ${connected ? 'connected' : 'disconnected'}`}>
+          <div
+            className={`status-indicator ${
+              connected ? 'connected' : 'disconnected'
+            }`}
+          >
             {connected ? '🟢 Connected' : '🔴 Disconnected'}
           </div>
           <div className={`led-status ${ledStatus}`}>
@@ -103,7 +111,7 @@ function App() {
           >
             {loading && ledStatus !== 'on' ? '⏳' : '💡'} Turn ON
           </button>
-          
+
           <button
             className={`btn btn-off ${ledStatus === 'off' ? 'active' : ''}`}
             onClick={() => sendCommand('off')}
@@ -122,11 +130,11 @@ function App() {
           >
             {photoLoading ? '⏳ Capturing...' : '📷 Take Photo'}
           </button>
-          
+
           {photo && (
             <div className="photo-container">
-              <img 
-                src={`data:image/jpeg;base64,${photo}`} 
+              <img
+                src={`data:image/jpeg;base64,${photo}`}
                 alt="Pi Camera"
                 className="pi-photo"
               />
@@ -137,6 +145,7 @@ function App() {
         <div className="info">
           <p>Controlling Pi LED and Camera via WebSocket</p>
           <p>Server: {SERVER_URL}</p>
+          <p>Repo: https://github.com/UI369/pi-to-go</p>
         </div>
       </div>
     </div>

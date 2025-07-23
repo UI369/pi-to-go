@@ -91,7 +91,7 @@ def capture_photo():
     try:
         photo_path = "/tmp/pi_photo.jpg"
         result = subprocess.run(["rpicam-still", "-o", photo_path, "--timeout", "1", 
-                               "--width", "640", "--height", "480", "--quality", "70"], 
+                               "--width", "1280", "--height", "960", "--quality", "85"], 
                               capture_output=True, text=True)
         
         if result.returncode == 0 and os.path.exists(photo_path):
