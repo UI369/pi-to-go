@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 
 function App() {
-  const [ledStatus, setLedStatus] = useState('off');
+  const [ledStatus, setLedStatus] = useState('unknown');
   const [loading, setLoading] = useState(false);
   const [connected, setConnected] = useState(true);
   const [photo, setPhoto] = useState(null);
@@ -46,7 +46,7 @@ function App() {
     }
   };
 
-  const takePhoto = useCallback(async () => {
+  const takePhoto = async () => {
     setPhotoLoading(true);
     try {
       // Send photo command
@@ -85,10 +85,25 @@ function App() {
       setConnected(false);
       setPhotoLoading(false);
     }
-  }, [SERVER_URL]);
+  };
 
-  // Take a photo when the component first loads
+  // Fetch current LED state and take a photo when component loads
   useEffect(() => {
+    const fetchCurrentState = async () => {
+      try {
+        const response = await fetch(`${SERVER_URL}/led-status`);
+        if (response.ok) {
+          const data = await response.json();
+          setLedStatus(data.status);
+          setConnected(true);
+        }
+      } catch (error) {
+        console.error('Error fetching LED status:', error);
+        setConnected(false);
+      }
+    };
+
+    fetchCurrentState();
     takePhoto();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -142,7 +157,7 @@ function App() {
 
         <div className="status-section">
           <div className={`led-status ${ledStatus}`}>
-            LED: {ledStatus === 'on' ? '💡 ON' : '⚫ OFF'}
+            LED: {ledStatus === 'on' ? '💡 ON' : ledStatus === 'off' ? '⚫ OFF' : '❓ UNKNOWN'}
           </div>
         </div>
 

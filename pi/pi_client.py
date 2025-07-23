@@ -107,11 +107,36 @@ def capture_photo():
         print(f"Error capturing photo: {e}")
         return None
 
+def get_current_led_state():
+    """Get current LED state by reading GPIO pin"""
+    try:
+        result = subprocess.run(["pinctrl", "get", "17"], capture_output=True, text=True)
+        if result.returncode == 0:
+            # Parse output like "17: op -- pd | hi // GPIO17 = output"
+            if "hi" in result.stdout:
+                return "on"
+            elif "lo" in result.stdout:
+                return "off"
+        return "unknown"
+    except Exception as e:
+        print(f"Error reading GPIO state: {e}")
+        return "unknown"
+
 def setup_gpio():
       """Configure GPIO pin as output"""
       try:
           subprocess.run(["pinctrl", "set", "17", "op"], capture_output=True, text=True)
           print("GPIO pin 17 configured as output")
+          
+          # Report current state to server
+          current_state = get_current_led_state()
+          print(f"Current LED state: {current_state}")
+          if current_state != "unknown":
+              sio.emit('led_status', {
+                  'piId': PI_ID,
+                  'status': current_state,
+                  'timestamp': time.time()
+              })
       except Exception as e:
           print(f"Error setting up GPIO: {e}")
 

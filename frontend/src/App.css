@@ -60,6 +60,11 @@ h1 {
   color: #6c757d;
 }
 
+.led-status.unknown {
+  background-color: #ffeaa7;
+  color: #d63031;
+}
+
 .controls {
   display: flex;
   gap: 1rem;
