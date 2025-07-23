@@ -17,6 +17,8 @@ app.use(express.json());
 
 // Store connected Pi devices
 const connectedPis = new Map();
+// Store latest photo
+let latestPhoto = null;
 
 // WebSocket connections
 io.on('connection', (socket) => {
@@ -37,6 +39,23 @@ io.on('connection', (socket) => {
     console.log('LED status update:', status);
     // Broadcast to all web clients
     socket.broadcast.emit('led_status', status);
+  });
+
+  // Handle photo data from Pi
+  socket.on('photo_data', (data) => {
+    console.log('Photo received from Pi:', data.piId);
+    latestPhoto = data;
+    // Broadcast to all web clients
+    socket.broadcast.emit('photo_update', {
+      piId: data.piId,
+      timestamp: data.timestamp
+    });
+  });
+
+  // Handle photo errors from Pi
+  socket.on('photo_error', (error) => {
+    console.log('Photo error:', error);
+    socket.broadcast.emit('photo_error', error);
   });
 
   socket.on('disconnect', () => {
@@ -78,6 +97,28 @@ app.post('/send-command', (req, res) => {
     res.json({ success: true, command: `LED ${command.toUpperCase()}` });
   } else {
     res.status(400).json({ error: 'Invalid command' });
+  }
+});
+
+// Camera endpoints
+app.post('/take-photo', (req, res) => {
+  const { piId } = req.body;
+  console.log(`Photo command for Pi: ${piId}`);
+  
+  io.emit('camera_command', { command: 'take_photo' });
+  res.json({ success: true, message: 'Photo command sent' });
+});
+
+app.get('/latest-photo', (req, res) => {
+  if (latestPhoto) {
+    res.json({
+      success: true,
+      photo: latestPhoto.photo,
+      timestamp: latestPhoto.timestamp,
+      piId: latestPhoto.piId
+    });
+  } else {
+    res.status(404).json({ error: 'No photo available' });
   }
 });
 
