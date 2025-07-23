@@ -90,7 +90,8 @@ def capture_photo():
     """Capture photo and return as base64"""
     try:
         photo_path = "/tmp/pi_photo.jpg"
-        result = subprocess.run(["rpicam-still", "-o", photo_path, "--timeout", "1"], 
+        result = subprocess.run(["rpicam-still", "-o", photo_path, "--timeout", "1", 
+                               "--width", "640", "--height", "480", "--quality", "70"], 
                               capture_output=True, text=True)
         
         if result.returncode == 0 and os.path.exists(photo_path):
