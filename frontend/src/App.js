@@ -90,7 +90,8 @@ function App() {
   // Take a photo when the component first loads
   useEffect(() => {
     takePhoto();
-  }, [takePhoto]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="App">
