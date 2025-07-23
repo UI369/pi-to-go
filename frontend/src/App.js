@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 
 function App() {
@@ -46,7 +46,7 @@ function App() {
     }
   };
 
-  const takePhoto = async () => {
+  const takePhoto = useCallback(async () => {
     setPhotoLoading(true);
     try {
       // Send photo command
@@ -85,7 +85,7 @@ function App() {
       setConnected(false);
       setPhotoLoading(false);
     }
-  };
+  }, [SERVER_URL]);
 
   // Take a photo when the component first loads
   useEffect(() => {
