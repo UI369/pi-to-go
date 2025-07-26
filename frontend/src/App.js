@@ -181,15 +181,24 @@ function App() {
           <div className="events-list">
             {events.length > 0 ? (
               events.map((event) => (
-                <div key={event.id} className={`event-item ${event.command}`}>
+                <div 
+                  key={event.id} 
+                  className={`event-item ${event.command}`}
+                  title={`${event.command === 'on' ? '💡' : '⚫'} LED turned ${event.command.toUpperCase()}
+📅 ${new Date(event.timestamp).toLocaleString()}
+${event.location ? `📍 ${event.location.city}, ${event.location.country}` : ''}
+${event.metadata?.browser ? `🌐 ${event.metadata.browser}${event.metadata.isMobile ? ' (Mobile)' : ' (Desktop)'}` : ''}
+🔄 Source: ${event.source}
+${event.metadata?.ip ? `🌐 IP: ${event.metadata.ip}` : ''}`}
+                >
+                  <span className="event-emoji">
+                    {event.command === 'on' ? '💡' : '⚫'}
+                  </span>
                   <span className="event-time">
-                    {new Date(event.timestamp).toLocaleString()}
+                    {new Date(event.timestamp).toLocaleDateString()} {new Date(event.timestamp).toLocaleTimeString()}
                   </span>
-                  <span className="event-action">
-                    LED turned {event.command.toUpperCase()}
-                  </span>
-                  <span className="event-source">
-                    via {event.source}
+                  <span className="event-location">
+                    {event.location ? `${event.location.flag} ${event.location.city}` : '🌍 Unknown'}
                   </span>
                 </div>
               ))

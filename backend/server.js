@@ -21,6 +21,82 @@ const connectedPis = new Map();
 let latestPhoto = null;
 // Store current LED state
 let currentLedState = 'unknown'; // unknown, on, off
+// Store LED event log (keep last 100 events)
+const ledEventLog = [];
+
+// Helper function to get location from IP
+async function getLocationFromIP(ip) {
+  try {
+    // Skip private/local IPs
+    if (ip === '::1' || ip === '127.0.0.1' || ip?.startsWith('192.168.') || ip?.startsWith('10.')) {
+      return { city: 'Local', country: 'Network', flag: '🏠' };
+    }
+    
+    const response = await fetch(`http://ip-api.com/json/${ip}?fields=city,country,countryCode`);
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      // Get flag emoji from country code
+      const flag = data.countryCode ? 
+        String.fromCodePoint(...data.countryCode.toUpperCase().split('').map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) :
+        '🌍';
+      
+      return {
+        city: data.city || 'Unknown',
+        country: data.country || 'Unknown',
+        flag: flag
+      };
+    }
+  } catch (error) {
+    console.log('Geolocation lookup failed:', error.message);
+  }
+  
+  return { city: 'Unknown', country: 'Unknown', flag: '🌍' };
+}
+
+// Helper function to log LED events
+async function logLedEvent(command, source = 'unknown', metadata = {}) {
+  // Get location if this is a web request
+  let location = null;
+  if (source === 'web' && metadata.ip) {
+    location = await getLocationFromIP(metadata.ip);
+  }
+
+  const event = {
+    id: Date.now() + Math.random(), // Simple unique ID
+    timestamp: new Date().toISOString(),
+    command: command, // 'on', 'off', or 'unknown'
+    source: source, // 'web', 'pi', 'system'
+    location: location, // { city, country, flag }
+    metadata: {
+      ...metadata,
+      browser: metadata.userAgent ? getBrowserInfo(metadata.userAgent) : null,
+      isMobile: metadata.userAgent ? /Mobile|Android|iPhone|iPad/.test(metadata.userAgent) : false
+    }
+  };
+  
+  ledEventLog.unshift(event); // Add to beginning of array
+  
+  // Keep only last 100 events
+  if (ledEventLog.length > 100) {
+    ledEventLog.pop();
+  }
+  
+  console.log(`LED Event: ${command} from ${source}${location ? ` (${location.city}, ${location.country})` : ''}`);
+}
+
+// Helper function to extract browser info
+function getBrowserInfo(userAgent) {
+  if (!userAgent) return 'Unknown';
+  
+  if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) return 'Chrome';
+  if (userAgent.includes('Firefox')) return 'Firefox';
+  if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) return 'Safari';
+  if (userAgent.includes('Edg')) return 'Edge';
+  if (userAgent.includes('Opera')) return 'Opera';
+  
+  return 'Unknown';
+}
 
 // WebSocket connections
 io.on('connection', (socket) => {
@@ -40,7 +116,14 @@ io.on('connection', (socket) => {
   socket.on('led_status', (status) => {
     console.log('LED status update:', status);
     // Update server's knowledge of LED state
+    const previousState = currentLedState;
     currentLedState = status.status;
+    
+    // Log the event if state actually changed
+    if (previousState !== currentLedState) {
+      logLedEvent(currentLedState, 'pi', { piId: status.piId });
+    }
+    
     // Broadcast to all web clients
     socket.broadcast.emit('led_status', status);
   });
@@ -98,8 +181,19 @@ app.post('/send-command', (req, res) => {
   
   if (command === 'on' || command === 'off') {
     io.emit('led_command', { command });
-    // Update server's knowledge of LED state immediately
+    
+    // Log the web command
+    const previousState = currentLedState;
     currentLedState = command;
+    
+    if (previousState !== currentLedState) {
+      await logLedEvent(command, 'web', { 
+        piId: piId,
+        userAgent: req.headers['user-agent'],
+        ip: req.ip || req.connection.remoteAddress
+      });
+    }
+    
     res.json({ success: true, command: `LED ${command.toUpperCase()}` });
   } else {
     res.status(400).json({ error: 'Invalid command' });
@@ -137,7 +231,16 @@ app.get('/led-status', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
+// Get LED event log
+app.get('/led-events', (req, res) => {
+  res.json({
+    success: true,
+    events: ledEventLog,
+    count: ledEventLog.length
+  });
+});
+
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
