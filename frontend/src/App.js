@@ -7,6 +7,7 @@ function App() {
   const [connected, setConnected] = useState(true);
   const [photo, setPhoto] = useState(null);
   const [photoLoading, setPhotoLoading] = useState(false);
+  const [events, setEvents] = useState([]);
 
   // Replace with your Railway server URL
   const SERVER_URL =
@@ -30,9 +31,10 @@ function App() {
       if (response.ok) {
         setLedStatus(command);
         setConnected(true);
-        // Wait a moment for LED to actually change, then take photo
+        // Wait a moment for LED to actually change, then take photo and refresh events
         setTimeout(() => {
           takePhoto();
+          fetchEvents();
         }, 100);
       } else {
         console.error('Failed to send command');
@@ -87,6 +89,18 @@ function App() {
     }
   };
 
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch(`${SERVER_URL}/led-events`);
+      if (response.ok) {
+        const data = await response.json();
+        setEvents(data.events);
+      }
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    }
+  };
+
   // Fetch current LED state and take a photo when component loads
   useEffect(() => {
     const fetchCurrentState = async () => {
@@ -105,6 +119,7 @@ function App() {
 
     fetchCurrentState();
     takePhoto();
+    fetchEvents();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -158,6 +173,29 @@ function App() {
         <div className="status-section">
           <div className={`led-status ${ledStatus}`}>
             LED: {ledStatus === 'on' ? '💡 ON' : ledStatus === 'off' ? '⚫ OFF' : '❓ UNKNOWN'}
+          </div>
+        </div>
+
+        <div className="events-section">
+          <h2>📝 Activity Log</h2>
+          <div className="events-list">
+            {events.length > 0 ? (
+              events.map((event) => (
+                <div key={event.id} className={`event-item ${event.command}`}>
+                  <span className="event-time">
+                    {new Date(event.timestamp).toLocaleString()}
+                  </span>
+                  <span className="event-action">
+                    LED turned {event.command.toUpperCase()}
+                  </span>
+                  <span className="event-source">
+                    via {event.source}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p>No events yet</p>
+            )}
           </div>
         </div>
 
