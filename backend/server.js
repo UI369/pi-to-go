@@ -26,14 +26,22 @@ const ledEventLog = [];
 
 // Helper function to get location from IP
 async function getLocationFromIP(ip) {
+  console.log('Attempting geolocation for IP:', ip);
+  
   try {
     // Skip private/local IPs
     if (ip === '::1' || ip === '127.0.0.1' || ip?.startsWith('192.168.') || ip?.startsWith('10.')) {
+      console.log('Skipping private IP, returning Local');
       return { city: 'Local', country: 'Network', flag: '🏠' };
     }
     
-    const response = await fetch(`http://ip-api.com/json/${ip}?fields=city,country,countryCode`);
+    const apiUrl = `http://ip-api.com/json/${ip}?fields=city,country,countryCode`;
+    console.log('Calling geolocation API:', apiUrl);
+    
+    const response = await fetch(apiUrl);
     const data = await response.json();
+    
+    console.log('Geolocation API response:', data);
     
     if (data.status === 'success') {
       // Get flag emoji from country code
@@ -46,6 +54,8 @@ async function getLocationFromIP(ip) {
         country: data.country || 'Unknown',
         flag: flag
       };
+    } else {
+      console.log('Geolocation API returned unsuccessful status:', data);
     }
   } catch (error) {
     console.log('Geolocation lookup failed:', error.message);
@@ -187,10 +197,18 @@ app.post('/send-command', async (req, res) => {
     currentLedState = command;
     
     if (previousState !== currentLedState) {
+      const clientIP = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
+      console.log('Client IP extracted:', clientIP, 'Headers:', {
+        'x-forwarded-for': req.headers['x-forwarded-for'],
+        'x-real-ip': req.headers['x-real-ip'],
+        'req.ip': req.ip,
+        'remoteAddress': req.connection.remoteAddress
+      });
+      
       await logLedEvent(command, 'web', { 
         piId: piId,
         userAgent: req.headers['user-agent'],
-        ip: req.ip || req.connection.remoteAddress
+        ip: clientIP
       });
     }
     
