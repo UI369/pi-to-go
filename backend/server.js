@@ -197,13 +197,9 @@ app.post('/send-command', async (req, res) => {
     currentLedState = command;
     
     if (previousState !== currentLedState) {
-      const clientIP = req.ip || req.connection.remoteAddress || req.headers['x-forwarded-for'];
-      console.log('Client IP extracted:', clientIP, 'Headers:', {
-        'x-forwarded-for': req.headers['x-forwarded-for'],
-        'x-real-ip': req.headers['x-real-ip'],
-        'req.ip': req.ip,
-        'remoteAddress': req.connection.remoteAddress
-      });
+      // Get real client IP - Railway uses x-forwarded-for
+      const clientIP = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.ip || req.connection.remoteAddress;
+      console.log('Client IP extracted:', clientIP);
       
       await logLedEvent(command, 'web', { 
         piId: piId,
