@@ -175,7 +175,7 @@ app.post('/api/led/off', (req, res) => {
 });
 
 // Generic command endpoint for React app
-app.post('/send-command', (req, res) => {
+app.post('/send-command', async (req, res) => {
   const { command, piId } = req.body;
   console.log(`Command received: ${command} for Pi: ${piId}`);
   
